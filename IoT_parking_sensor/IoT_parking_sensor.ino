@@ -38,6 +38,29 @@ bool timeout(uint64_t duration){
 // test slots
 Slot slots[3] = {Slot(1, 0, 2, 3), Slot(1, 1, 4, 5), Slot(1, 2, 6, 7)};
 
+// led rgb as actuator
+uint8_t greenPin = 12;
+uint8_t bluePin = 13;
+uint8_t redPin = 11;
+
+void output(uint8_t out){
+  if(out == 'g'){
+    digitalWrite(redPin, LOW);
+    digitalWrite(greenPin, HIGH);
+    digitalWrite(redPin, LOW);
+  }
+  else if(out == 'b'){
+    digitalWrite(redPin, LOW);
+    digitalWrite(greenPin, LOW);
+    digitalWrite(redPin, HIGH);
+  }
+  else if(out == 'r'){
+    digitalWrite(redPin, HIGH);
+    digitalWrite(greenPin, LOW);
+    digitalWrite(redPin, LOW);
+  }
+}
+
 void setup() {
     Serial.begin(9600);
 }
@@ -46,13 +69,13 @@ void loop() {
 
     for(size_t i = 0; i < sizeof(slots) / sizeof(Slot); ++i){
         Slot s = slots[i];
-
-        // leggo gli input
+        
+        // reading input
         s.s1_.state = digitalRead(s.s1_.pin_);
         s.s2_.state = digitalRead(s.s2_.pin_);
 
-        // transizione di stato
-        // il comportamento di default è rimanere sullo stato corrente
+        // state change
+        // default behaviour is staying in the current state
         s.futureState = s.currentState;
         if((s.currentState == free_) && (s.s1_.state == on_ || s.s2_.state == on_) ){
             s.futureState = requested_;
@@ -68,7 +91,7 @@ void loop() {
         }
 
         /*
-        NB: in qualche modo devo comunicare il passaggio di stato al bridge
+        [i need to tell the bridge that i changed my state]
         */
 
         // on-exit
@@ -88,8 +111,19 @@ void loop() {
         }
 
         s.currentState = s.futureState;
-        slots[i] = s;
+
         // output
+        if(s.currentState == free_){
+          output('g');
+        }
+        if(s.currentState == requested_){
+          output('b');
+        }
+        if(s.currentState == taken_){
+          output('r');
+        }
+
+        slots[i] = s;
     }
 
 }

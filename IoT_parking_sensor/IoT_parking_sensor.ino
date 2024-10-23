@@ -144,14 +144,14 @@ void loop() {
         if (state1 == HIGH) {
           s.s1_.state = on_;
         }
-        else if (state1 == LOW) {
+        else(state1 == LOW) {
           s.s1_.state = off_;
         }
 
         if (state2 == HIGH) {
           s.s2_.state = on_;
         }
-        else if (state2 == LOW) {
+        else(state2 == LOW) {
           s.s2_.state = off_;
         }
 

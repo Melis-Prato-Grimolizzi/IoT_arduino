@@ -14,7 +14,6 @@ enum SensorState{
 
 enum ParkingState{
     free_,
-    requested_,
     taken_,
 };
 
@@ -73,11 +72,6 @@ void output(uint8_t out){
     digitalWrite(redPin, LOW);
     digitalWrite(greenPin, HIGH);
     digitalWrite(redPin, LOW);
-  }
-  else if(out == 'b'){
-    digitalWrite(redPin, LOW);
-    digitalWrite(greenPin, LOW);
-    digitalWrite(redPin, HIGH);
   }
   else if(out == 'r'){
     digitalWrite(redPin, HIGH);
@@ -144,27 +138,21 @@ void loop() {
         if (state1 == HIGH) {
           s.s1_.state = on_;
         }
-        else(state1 == LOW) {
+        else{
           s.s1_.state = off_;
         }
 
         if (state2 == HIGH) {
           s.s2_.state = on_;
         }
-        else(state2 == LOW) {
+        else{
           s.s2_.state = off_;
         }
 
         // state change
         // default behaviour is staying in the current state
         s.futureState = s.currentState;
-        if((s.currentState == free_) && (s.s1_.state == on_ || s.s2_.state == on_) ){
-            s.futureState = requested_;
-        }
-        else if(s.currentState == requested_ && s.s1_.state == off_ && s.s2_.state == off_){
-            s.futureState = free_;
-        }
-        else if(s.currentState == requested_ && s.s1_.state == on_ && s.s2_.state == on_ && timeout(3000)){
+        if((s.currentState == free_) && s.s1_.state == on_ && s.s2_.state == on_ ){
             s.futureState = taken_;
         }
         else if(s.currentState == taken_ && s.s1_.state == off_ && s.s2_.state == off_){
@@ -179,12 +167,7 @@ void loop() {
         
         // on-entry
         if(s.currentState != s.futureState){
-            if(s.currentState == free_ && s.futureState == requested_){
-                Serial.println("Il parcheggio è richiesto");
-                // start timer
-                startMillis = millis();
-            }
-            else if(s.currentState == requested_ && s.futureState == taken_){
+            if(s.currentState == free_ && s.futureState == taken_){
                 Serial.println("Il parcheggio è occupato");
             }
             else if(s.currentState == taken_ && s.futureState == free_){
@@ -198,9 +181,6 @@ void loop() {
         // output
         if(s.currentState == free_){
           output('g');
-        }
-        if(s.currentState == requested_){
-          output('b');
         }
         if(s.currentState == taken_){
           output('r');

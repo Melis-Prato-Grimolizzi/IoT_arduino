@@ -1,3 +1,12 @@
+#include <Arduino_JSON.h>
+
+const uint8_t ZONE = 1; // hard coded zone
+
+const uint64_t initRequestRate = 3000; // request rate for init phase
+bool tryInit = true; // to know when to send again init packet
+
+uint64_t startMillis; // timer var for state changing
+
 enum SensorState{
     off_,
     on_,
@@ -30,7 +39,6 @@ struct Slot{
   /**
   * @brief Constructor for a slot.
   *
-  *
   * @param zone The zone that the slot belongs to.
   * @param id The unique id wrt zone.
   * @param lat Latitude of parking slot.
@@ -47,14 +55,13 @@ struct Slot{
   Slot() : zone_(0), id_(0), lat_(0), lon_(0), s1_(0), s2_(0) {}
 };
 
-uint64_t startMillis;
 
 bool timeout(uint64_t duration){
   return ((millis() - startMillis) > duration);
 }
 
 // test slots
-Slot slots[3] = {Slot(1, 0, 44.0, 44.0, 2, 3), Slot(1, 1, 44.0, 44.0, 4, 5), Slot(1, 2, 44.0, 44.0, 6, 7)};
+Slot slots[1] = {Slot(ZONE, 0, 44.0, 44.0, 2, 3)/*, Slot(1, 1, 44.0, 44.0, 4, 5), Slot(1, 2, 44.0, 44.0, 6, 7)*/};
 
 // led rgb as actuator
 uint8_t greenPin = 12;
@@ -79,8 +86,46 @@ void output(uint8_t out){
   }
 }
 
+bool recivedInit(){
+  if(Serial.available() > 0){
+    if(Serial.read() == 'i'){
+      return true;
+    }
+  }
+  return false;
+}
+
+
+void requestInput(uint8_t zone){
+  uint64_t curMillis = millis();
+  while(!recivedInit())
+  {
+    if(tryInit){
+      Serial.write(0xFF); // header
+      Serial.write(0x01); // size
+      Serial.write(byte(zone)); // zone
+      Serial.write(0xFE); // footer
+    }
+    if((millis() - curMillis) > initRequestRate){
+      tryInit = true;
+      curMillis = millis();
+    }
+    else{
+      tryInit = false;
+    }
+  }
+}
+
 void setup() {
     Serial.begin(9600);
+    while(!Serial){}
+
+    pinMode(2, INPUT);
+    pinMode(3, INPUT);
+
+    Serial.println("Hello");
+
+    requestInput(ZONE);
     // i should retrive from the bridge the slots
 
 }
@@ -88,10 +133,14 @@ void setup() {
 void loop() {
     for(size_t i = 0; i < sizeof(slots) / sizeof(Slot); ++i){
         Slot& s = slots[i];
-        
         // reading input
         int state1 = digitalRead(s.s1_.pin_);
         int state2 = digitalRead(s.s2_.pin_);
+
+        // JUST FOR NOW
+        state1 = LOW;
+        state2 = LOW;
+
         if (state1 == HIGH) {
           s.s1_.state = on_;
         }
@@ -127,10 +176,10 @@ void loop() {
         */
 
         // on-exit
-
+        
         // on-entry
         if(s.currentState != s.futureState){
-            if(s.currentState == free_ && s.currentState == requested_){
+            if(s.currentState == free_ && s.futureState == requested_){
                 Serial.println("Il parcheggio è richiesto");
                 // start timer
                 startMillis = millis();
@@ -140,6 +189,7 @@ void loop() {
             }
             else if(s.currentState == taken_ && s.futureState == free_){
                 Serial.println("Il parcheggio è libero");
+
             }    
         }
 
@@ -155,8 +205,6 @@ void loop() {
         if(s.currentState == taken_){
           output('r');
         }
-
-        slots[i] = s;
     }
 
 }

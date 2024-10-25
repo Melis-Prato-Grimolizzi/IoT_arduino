@@ -1,4 +1,5 @@
 #include <Arduino_JSON.h>
+#include <LoRa.h>
 
 const uint8_t ZONE = 1; // hard coded zone
 
@@ -114,6 +115,9 @@ void setup() {
     Serial.begin(9600);
     while(!Serial){}
 
+    LoRa.begin(868E6);
+    
+
     pinMode(2, INPUT);
     pinMode(3, INPUT);
 
@@ -125,6 +129,7 @@ void setup() {
 }
 
 void loop() {
+  
     for(size_t i = 0; i < sizeof(slots) / sizeof(Slot); ++i){
         Slot& s = slots[i];
         // reading input

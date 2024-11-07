@@ -1,3 +1,4 @@
+#define TEST 1
 #include <Arduino_JSON.h>
 #include <LoRa.h>
 

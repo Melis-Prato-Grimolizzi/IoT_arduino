@@ -82,9 +82,19 @@ void output(uint8_t out){
 }
 
 bool recivedInit(){
-  if(Serial.available() > 0){
-    if(Serial.read() == 'i'){
-      return true;
+  int packetSize = LoRa.parsePacket();
+  if(packetSize){
+    char buffer[255];
+    uint8_t pointer = 0;
+    while(LoRa.available()){
+      buffer[pointer] = (char)LoRa.read();
+      ++pointer;
+    }
+    if(buffer[0] == 0xFF){
+      if(buffer[1] == "i"){
+        // TODO: gestire il pacchetto
+        return true;
+      }
     }
   }
   return false;
@@ -96,10 +106,12 @@ void requestInput(uint8_t zone){
   while(!recivedInit())
   {
     if(tryInit){
-      Serial.write(0xFF); // header
-      Serial.write(0x01); // size
-      Serial.write(byte(zone)); // zone
-      Serial.write(0xFE); // footer
+      LoRa.beginPacket();
+      LoRa.write(0xFF); // header
+      LoRa.write(0x01); // size
+      LoRa.write(byte(zone)); // zone
+      LoRa.write(0xFE); // footer
+      LoRa.endPacket();
     }
     if((millis() - curMillis) > initRequestRate){
       tryInit = true;
@@ -169,6 +181,16 @@ void loop() {
         */
 
         // on-exit
+        if(s.currentState != s.futureState){
+          LoRa.beginPacket();
+          LoRa.write(0xFF); // header
+          LoRa.write(0x01); // size
+          LoRa.write(byte(zone)); // zone
+          LoRa.write(s.id_); // id
+          LoRa.write(s.futureState); // state
+          LoRa.write(0xFE); // footer
+          LoRa.endPacket();
+        }
         
         // on-entry
         if(s.currentState != s.futureState){

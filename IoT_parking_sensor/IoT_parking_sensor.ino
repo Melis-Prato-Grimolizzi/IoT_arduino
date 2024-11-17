@@ -13,7 +13,7 @@
 #define ACTIVATION_TRESH 70 // treshold di attivazione del sensore
 
 // pin per il primo slot
-#define PIN_SLOT_1_1 12
+#define PIN_SLOT_1_1 13
 #define PIN_SLOT_1_2 12
 
 // pin per il secondo slot

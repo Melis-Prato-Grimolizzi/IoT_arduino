@@ -1,5 +1,6 @@
 #include <Arduino_JSON.h>
-#include <LoRa.h>
+#include <NewPing.h> 
+#include "LoRa_E220.h"
 
 /*
   New Ping è una libreria che permette una gestione ottimizzata dei
@@ -7,8 +8,6 @@
   un sensore che richiede due pin di digitali (trig e echo) usando
   solo un pin
 */
-#include <NewPing.h> 
-
 #define MAX_DISTANCE 200 // distanza massima pingabile in cm 
 #define ACTIVATION_TRESH 70 // treshold di attivazione del sensore
 
@@ -26,12 +25,12 @@
 #define PIN_SLOT_3_2 8
 
 // pin E220-900T22D
-#define RXD 2
-#define TXD 1
+#define RXD 3
+#define TXD 2 
 
 #define DELTA_READING 100
 
-const uint8_t ZONE = 1; // hard coded zone
+#define ZONE 1 // hard coded zone
 
 const uint64_t initRequestRate = 3000; // request rate for init phase
 uint64_t stabilize = 0;
@@ -99,7 +98,7 @@ NewPing s3_2(PIN_SLOT_3_2, PIN_SLOT_3_2, MAX_DISTANCE);
 Sensor distanceSensor1_1(s1_1);
 Sensor distanceSensor1_2(s1_2);
 
-
+LoRa_E220 lora(RXD, TXD);
 
 /////////////////////////////////////////////////// test slots
 Slot slots[1] = {
@@ -114,10 +113,8 @@ bool timeout(uint64_t duration){
 }
 
 // led rgb as actuator
-uint8_t greenPin = 12;
-uint8_t bluePin = 13;
-uint8_t redPin = 11;
 
+/*
 void output(uint8_t out){
   if(out == 'g'){
     digitalWrite(redPin, LOW);
@@ -130,18 +127,21 @@ void output(uint8_t out){
     digitalWrite(redPin, LOW);
   }
 }
-
+*/
 
 
 void setup() {
     Serial.begin(115200);
     while(!Serial){}
 
-    //LoRa.begin(868E6);
-    
+    Serial.println("Starting LoRa...");
+    lora.begin();
+    Serial.println("LoRa succesfully started!");
 
+    /*
     pinMode(2, INPUT);
     pinMode(3, INPUT);
+    */
 
     Serial.println("Hello");
 }
@@ -152,6 +152,17 @@ void loop() {
         Slot& s = slots[i];
         // reading input
         delay(50); // momentaneo
+
+        ResponseStatus rs = lora.sendMessage("Hello, world?");
+        Serial.println(rs.code);
+        Serial.println(rs.getResponseDescription());
+
+        Serial.println(lora.available());
+        if(lora.available() > 0){
+          Serial.print("Ricevuto");
+        }
+
+        break;
         int state1 = s.s1_.sensor.ping_cm();
         //Serial.println(state1);
         int state2 = s.s2_.sensor.ping_cm();

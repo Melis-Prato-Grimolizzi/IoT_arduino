@@ -112,26 +112,9 @@ bool timeout(uint64_t duration){
   return ((millis() - startMillis) > duration);
 }
 
-// led rgb as actuator
-
-/*
-void output(uint8_t out){
-  if(out == 'g'){
-    digitalWrite(redPin, LOW);
-    digitalWrite(greenPin, HIGH);
-    digitalWrite(redPin, LOW);
-  }
-  else if(out == 'r'){
-    digitalWrite(redPin, HIGH);
-    digitalWrite(greenPin, LOW);
-    digitalWrite(redPin, LOW);
-  }
-}
-*/
-
 
 void setup() {
-    Serial.begin(115200);
+    Serial.begin(9600);
     while(!Serial){}
 
     Serial.println("Starting LoRa...");
@@ -152,17 +135,6 @@ void loop() {
         Slot& s = slots[i];
         // reading input
         delay(50); // momentaneo
-
-        ResponseStatus rs = lora.sendMessage("Hello, world?");
-        Serial.println(rs.code);
-        Serial.println(rs.getResponseDescription());
-
-        Serial.println(lora.available());
-        if(lora.available() > 0){
-          Serial.print("Ricevuto");
-        }
-
-        break;
         int state1 = s.s1_.sensor.ping_cm();
         //Serial.println(state1);
         int state2 = s.s2_.sensor.ping_cm();
@@ -211,22 +183,15 @@ void loop() {
 
         // on-exit
         if(s.currentState != s.futureState){
-          /*
-          LoRa.beginPacket();
-          LoRa.write(0xFF); // header
-          LoRa.write(0x01); // size
-          LoRa.write(byte(ZONE)); // zone
-          LoRa.write(s.id_); // id
-          LoRa.write(s.futureState); // state
-          LoRa.write(0xFE); // footer
-          LoRa.endPacket();
-          */
           Serial.print("Il sensore ha cambiato stato passando da ");
           Serial.print(s.currentState);
           Serial.print(" a ");
           Serial.println(s.futureState);
           stabilize = millis();
           to_stabilize = true;
+
+          // mando l'id del parcheggio che ha cambiato stato
+          lora.sendMessage(s.id_);
         }
         
         // on-entry
@@ -241,16 +206,6 @@ void loop() {
         }
 
         s.currentState = s.futureState;
-
-        // output
-        /*
-        if(s.currentState == free_){
-          output('g');
-        }
-        if(s.currentState == taken_){
-          output('r');
-        }
-        */
 
         //////////////////////////////////////////////////////////////////////////////
         ///DEBUG VERSION (SOLO 1 SENSORE)

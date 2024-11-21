@@ -1,4 +1,3 @@
-#include <Arduino_JSON.h>
 #include <NewPing.h> 
 #include "LoRa_E220.h"
 
@@ -8,7 +7,7 @@
   un sensore che richiede due pin di digitali (trig e echo) usando
   solo un pin
 */
-#define MAX_DISTANCE 200 // distanza massima pingabile in cm 
+#define MAX_DISTANCE 900 // distanza massima pingabile in cm 
 #define ACTIVATION_TRESH 70 // treshold di attivazione del sensore
 
 // pin per il primo slot
@@ -25,8 +24,8 @@
 #define PIN_SLOT_3_2 8
 
 // pin E220-900T22D
-#define RXD 3
-#define TXD 2 
+#define RXD 2
+#define TXD 3 
 
 #define DELTA_READING 100
 
@@ -134,9 +133,10 @@ void loop() {
     for(size_t i = 0; i < sizeof(slots) / sizeof(Slot); ++i){
         Slot& s = slots[i];
         // reading input
-        delay(50); // momentaneo
+        delay(50); // momentaneo+
+        /*
         int state1 = s.s1_.sensor.ping_cm();
-        //Serial.println(state1);
+        Serial.println(state1);
         int state2 = s.s2_.sensor.ping_cm();
 
         if((state1 <= ACTIVATION_TRESH) && (state2 <= ACTIVATION_TRESH)){
@@ -190,8 +190,10 @@ void loop() {
           stabilize = millis();
           to_stabilize = true;
 
+          //ResponseStatus rs = lora.sendMessage(String(s.id_));
           // mando l'id del parcheggio che ha cambiato stato
-          lora.sendMessage(s.id_);
+          lora.sendMessage(String(s.id_).c_str());
+          //Serial.println(rs.code);
         }
         
         // on-entry
@@ -206,12 +208,12 @@ void loop() {
         }
 
         s.currentState = s.futureState;
-
+        */
         //////////////////////////////////////////////////////////////////////////////
         ///DEBUG VERSION (SOLO 1 SENSORE)
         //////////////////////////////////////////////////////////////////////////////
 
-        /*
+        
         int state1 = s.s1_.sensor.ping_cm();
         Serial.println(state1);
 
@@ -249,6 +251,10 @@ void loop() {
           Serial.println(s.futureState);
           stabilize = millis();
           to_stabilize = true;
+
+          ResponseStatus rs = lora.sendMessage(String(s.id_));
+          //lora.sendMessage(String(s.id_).c_str());
+          Serial.print(rs.code);
         }
 
         if(s.currentState != s.futureState){
@@ -262,7 +268,7 @@ void loop() {
         }
 
         s.currentState = s.futureState;
-        */
+        
     }
 
 }

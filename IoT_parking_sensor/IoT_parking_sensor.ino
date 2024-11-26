@@ -7,7 +7,7 @@
   un sensore che richiede due pin di digitali (trig e echo) usando
   solo un pin
 */
-#define MAX_DISTANCE 900 // distanza massima pingabile in cm 
+#define MAX_DISTANCE 100 // distanza massima pingabile in cm 
 #define ACTIVATION_TRESH 70 // treshold di attivazione del sensore
 
 // pin per il primo slot
@@ -83,6 +83,15 @@ struct Slot{
 
 };
 
+struct packet{
+  byte header;
+  uint8_t id;
+  byte footer;
+
+  packet(byte head, uint8_t id_, byte foot):
+    header(head), id(id_), footer(foot) {}
+};
+
 
 NewPing s1_1(PIN_SLOT_1_1, PIN_SLOT_1_1, MAX_DISTANCE);
 NewPing s1_2(PIN_SLOT_1_2, PIN_SLOT_1_2, MAX_DISTANCE);
@@ -139,7 +148,7 @@ void loop() {
         Serial.println(state1);
         int state2 = s.s2_.sensor.ping_cm();
 
-        if((state1 <= ACTIVATION_TRESH) && (state2 <= ACTIVATION_TRESH)){
+        if(((state1 <= ACTIVATION_TRESH) && (state1 != 0)) && ((state2 <= ACTIVATION_TRESH) && (state2 != 0))){
           state1 = HIGH;
           state2 = HIGH;
         }
@@ -190,10 +199,9 @@ void loop() {
           stabilize = millis();
           to_stabilize = true;
 
-          //ResponseStatus rs = lora.sendMessage(String(s.id_));
-          // mando l'id del parcheggio che ha cambiato stato
-          lora.sendMessage(String(s.id_).c_str());
-          //Serial.println(rs.code);
+          packet msg(0xFF, s.id_, 0xFE);
+          ResponseStatus rs = lora.sendMessage(&msg, sizeof(struct packet));
+          Serial.println(rs.getResponseDescription());
         }
         
         // on-entry
@@ -217,7 +225,7 @@ void loop() {
         int state1 = s.s1_.sensor.ping_cm();
         Serial.println(state1);
 
-        if((state1 <= ACTIVATION_TRESH)){
+        if((state1 <= ACTIVATION_TRESH) && (state1 != 0)){
           state1 = HIGH;
         }
 
@@ -251,10 +259,11 @@ void loop() {
           Serial.println(s.futureState);
           stabilize = millis();
           to_stabilize = true;
-
-          ResponseStatus rs = lora.sendMessage(String(s.id_));
+          packet msg(0xFF, s.id_, 0xFE);
+          //ResponseStatus rs = lora.sendMessage(String(s.id_));
+          ResponseStatus rs = lora.sendMessage(&msg, sizeof(struct packet));
           //lora.sendMessage(String(s.id_).c_str());
-          Serial.print(rs.code);
+          Serial.print(rs.getResponseDescription());
         }
 
         if(s.currentState != s.futureState){

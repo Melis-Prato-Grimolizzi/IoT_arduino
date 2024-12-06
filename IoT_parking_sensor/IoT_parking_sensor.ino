@@ -29,6 +29,12 @@
 
 #define DELTA_READING 100
 
+const uint8_t led1 = 7;
+const uint8_t led2 = 6;
+const uint8_t led3 = 5;
+
+uint8_t leds[3] = {led1, led2, led3};
+
 #define ZONE 1 // hard coded zone
 
 const uint64_t initRequestRate = 3000; // request rate for init phase
@@ -134,7 +140,11 @@ void setup() {
     pinMode(3, INPUT);
     */
 
-    Serial.println("Hello");
+    pinMode(7, INPUT);
+    pinMode(6, INPUT);
+    pinMode(5, INPUT);
+
+    Serial.println("Ora si entra nel loop!");
 }
 
 void loop() {
@@ -142,8 +152,8 @@ void loop() {
     for(size_t i = 0; i < sizeof(slots) / sizeof(Slot); ++i){
         Slot& s = slots[i];
         // reading input
-        delay(50); // momentaneo+
-        /*
+        //delay(50); // momentaneo
+        
         int state1 = s.s1_.sensor.ping_cm();
         Serial.println(state1);
         int state2 = s.s2_.sensor.ping_cm();
@@ -216,12 +226,22 @@ void loop() {
         }
 
         s.currentState = s.futureState;
-        */
+
+        //output
+        if(s.currentState == free_){
+          digitalWrite(leds[s.id_], LOW);
+        }
+        else{
+          digitalWrite(leds[s.id_], HIGH);
+        }
+
+
+        
         //////////////////////////////////////////////////////////////////////////////
         ///DEBUG VERSION (SOLO 1 SENSORE)
         //////////////////////////////////////////////////////////////////////////////
 
-        
+        /*
         int state1 = s.s1_.sensor.ping_cm();
         Serial.println(state1);
 
@@ -277,7 +297,7 @@ void loop() {
         }
 
         s.currentState = s.futureState;
-        
+        */
     }
 
 }

@@ -2,7 +2,8 @@
 #include "LoRa_E220.h"
 
 /*
-  New Ping è una libreria che permette una gestione ottimizzata dei
+  New Ping eeeeeeeee
+ una libreria che permette una gestione ottimizzata dei
   sensori di posizione. Fra le altre cose permette di utilizzare 
   un sensore che richiede due pin di digitali (trig e echo) usando
   solo un pin

@@ -114,6 +114,8 @@ Sensor distanceSensor1_2(s1_2);
 
 LoRa_E220 lora(RXD, TXD);
 
+uint64_t delays[3] = {0, 0, 0};
+
 /////////////////////////////////////////////////// test slots
 Slot slots[1] = {
  Slot(ZONE, 1, 44.11, 10.11, distanceSensor1_1, distanceSensor1_2),
@@ -145,95 +147,104 @@ void setup() {
     pinMode(5, INPUT);
 
     Serial.println("Ora si entra nel loop!");
+
+    delays[0] = millis();
+    delays[1] = millis();
+    delays[2] = millis();
 }
 
 void loop() {
   
     for(size_t i = 0; i < sizeof(slots) / sizeof(Slot); ++i){
         Slot& s = slots[i];
-        // reading input
-        //delay(50); // momentaneo
-        
-        int state1 = s.s1_.sensor.ping_cm();
-        Serial.println(state1);
-        int state2 = s.s2_.sensor.ping_cm();
 
-        if(((state1 <= ACTIVATION_TRESH) && (state1 != 0)) && ((state2 <= ACTIVATION_TRESH) && (state2 != 0))){
-          state1 = HIGH;
-          state2 = HIGH;
-        }
-
-        if (state1 == HIGH) {
-          s.s1_.state = on_;
-          if (to_stabilize){
-            stabilize = millis();
-            to_stabilize = false;
-          }
-        }
-        else{
-          s.s1_.state = off_;
-          stabilize = millis();
-          to_stabilize = true;
+        if((millis() - delays[i]) > 50){
+          delays[i] = millis();
           
-        }
-        if (state2 == HIGH) {
-          s.s2_.state = on_;
-          if (to_stabilize){
+          int state1 = s.s1_.sensor.ping_cm();
+          Serial.println(state1);
+          int state2 = s.s2_.sensor.ping_cm();
+          Serial.println(state2);
+
+          if(((state1 <= ACTIVATION_TRESH) && (state1 != 0)) && ((state2 <= ACTIVATION_TRESH) && (state2 != 0))){
+            state1 = HIGH;
+            state2 = HIGH;
+          }
+
+          if (state1 == HIGH) {
+            s.s1_.state = on_;
+            if (to_stabilize){
+              stabilize = millis();
+              to_stabilize = false;
+            }
+          }
+          else{
+            s.s1_.state = off_;
             stabilize = millis();
-            to_stabilize = false;
+            to_stabilize = true;
+            
+          }
+          if (state2 == HIGH) {
+            s.s2_.state = on_;
+            if (to_stabilize){
+              stabilize = millis();
+              to_stabilize = false;
+            }
+          }
+          else{
+            s.s2_.state = off_;
+            stabilize = millis();
+            to_stabilize = true;
+          }
+          
+
+          // state change
+          // default behaviour is staying in the current state
+          s.futureState = s.currentState;
+          if((s.currentState == free_) && s.s1_.state == on_ && s.s2_.state == on_ && ((millis() - stabilize) > 1500)){
+              s.futureState = taken_;
+          }
+          else if(s.currentState == taken_ && s.s1_.state == off_ && s.s2_.state == off_){
+              s.futureState = free_;
+          }
+
+          // on-exit
+          if(s.currentState != s.futureState){
+            Serial.print("Il sensore ha cambiato stato passando da ");
+            Serial.print(s.currentState);
+            Serial.print(" a ");
+            Serial.println(s.futureState);
+            stabilize = millis();
+            to_stabilize = true;
+
+            packet msg(0xFF, s.id_, 0xFE);
+            ResponseStatus rs = lora.sendMessage(&msg, sizeof(struct packet));
+            Serial.println(rs.getResponseDescription());
+          }
+          
+          // on-entry
+          if(s.currentState != s.futureState){
+              if(s.currentState == free_ && s.futureState == taken_){
+                  Serial.println("Il parcheggio è occupato");
+              }
+              else if(s.currentState == taken_ && s.futureState == free_){
+                  Serial.println("Il parcheggio è libero");
+
+              }    
+          }
+
+          s.currentState = s.futureState;
+
+          //output
+          if(s.currentState == free_){
+            digitalWrite(leds[s.id_], LOW);
+          }
+          else{
+            digitalWrite(leds[s.id_], HIGH);
           }
         }
-        else{
-          s.s2_.state = off_;
-          stabilize = millis();
-          to_stabilize = true;
-        }
+        // reading input
         
-
-        // state change
-        // default behaviour is staying in the current state
-        s.futureState = s.currentState;
-        if((s.currentState == free_) && s.s1_.state == on_ && s.s2_.state == on_ && ((millis() - stabilize) > 1500)){
-            s.futureState = taken_;
-        }
-        else if(s.currentState == taken_ && s.s1_.state == off_ && s.s2_.state == off_){
-            s.futureState = free_;
-        }
-
-        // on-exit
-        if(s.currentState != s.futureState){
-          Serial.print("Il sensore ha cambiato stato passando da ");
-          Serial.print(s.currentState);
-          Serial.print(" a ");
-          Serial.println(s.futureState);
-          stabilize = millis();
-          to_stabilize = true;
-
-          packet msg(0xFF, s.id_, 0xFE);
-          ResponseStatus rs = lora.sendMessage(&msg, sizeof(struct packet));
-          Serial.println(rs.getResponseDescription());
-        }
-        
-        // on-entry
-        if(s.currentState != s.futureState){
-            if(s.currentState == free_ && s.futureState == taken_){
-                Serial.println("Il parcheggio è occupato");
-            }
-            else if(s.currentState == taken_ && s.futureState == free_){
-                Serial.println("Il parcheggio è libero");
-
-            }    
-        }
-
-        s.currentState = s.futureState;
-
-        //output
-        if(s.currentState == free_){
-          digitalWrite(leds[s.id_], LOW);
-        }
-        else{
-          digitalWrite(leds[s.id_], HIGH);
-        }
 
 
         
